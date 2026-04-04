@@ -34,8 +34,7 @@ app.use(cors({
 
 // 2. ADDED: Static folder to serve your uploaded photos
 // This allows the frontend to access images via http://your-backend.com/uploads/filename.jpg
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 // ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
