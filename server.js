@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(cors({
   origin: [
     "http://localhost:3000", // local development
-    process.env.FRONTEND_URL // production (Vercel)
+    'https://thefolio-frontend-6m2l1ra5c-nngn12s-projects.vercel.app' // production (Vercel)
   ].filter(Boolean), // removes undefined if not set
   credentials: true
 }));
