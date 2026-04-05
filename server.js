@@ -15,6 +15,11 @@ const app = express();
 // ✅ Middleware
 app.use(express.json());
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://thefolio-final.vercel.app' // <--- Add your new link here
+];
+
 // 1. UPDATED: Flexible CORS to handle any Vercel preview or production URL
 app.use(cors({
   origin: (origin, callback) => {
