@@ -7,7 +7,7 @@ const seedAdmin = async () => {
     try {
         const name = 'Admin';
         const email = 'admin@thefolio.com';
-        const password = 'admin123';
+        const password = 'Admin121706292379';
         const role = 'admin';
 
         // hash the password
