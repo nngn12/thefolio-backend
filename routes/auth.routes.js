@@ -86,10 +86,10 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
-// PUT /api/auth/profile
+// PUT /api/auth/profile (Unified with deletePic logic)
 router.put('/profile', protect, upload.single('profilePic'), async (req, res) => {
   try {
-    const { name, bio } = req.body;
+    const { name, bio, deletePic } = req.body;
     const profilePic = req.file ? req.file.filename : null;
 
     let query = 'UPDATE users SET updated_at = CURRENT_TIMESTAMP';
@@ -101,12 +101,16 @@ router.put('/profile', protect, upload.single('profilePic'), async (req, res) =>
       values.push(name);
     }
     if (bio !== undefined) {
-      query += `, bio = $${idx++}`;
+      query += `, bio =$${idx++}`;
       values.push(bio);
     }
+
+    // Logic for new upload OR deleting existing pic
     if (profilePic) {
       query += `, profile_pic = $${idx++}`;
       values.push(profilePic);
+    } else if (deletePic === 'true') {
+      query += `, profile_pic = NULL`;
     }
 
     query += ` WHERE id = $${idx} RETURNING id, name, email, role, status, bio, profile_pic, created_at`;
@@ -136,44 +140,6 @@ router.put('/change-password', protect, async (req, res) => {
     ]);
 
     res.json({ message: 'Password updated successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// PUT /api/auth/profile
-router.put('/profile', protect, upload.single('profilePic'), async (req, res) => {
-  try {
-    const { name, bio, deletePic } = req.body; // added deletePic flag
-    const profilePic = req.file ? req.file.filename : null;
-
-    let query = 'UPDATE users SET updated_at = CURRENT_TIMESTAMP';
-    const values = [];
-    let idx = 1;
-
-    if (name) {
-      query += `, name = $${idx++}`;
-      values.push(name);
-    }
-    if (bio !== undefined) {
-      query += `, bio = $${idx++}`;
-      values.push(bio);
-    }
-    if (profilePic) {
-      query += `, profile_pic = $${idx++}`;
-      values.push(profilePic);
-    }
-
-    if (deletePic === 'true') {
-      query += `, profile_pic = NULL`;
-    }
-
-    query += ` WHERE id = $${idx} RETURNING id, name, email, role, status, bio, profile_pic, created_at`;
-    values.push(req.user.id);
-
-    const result = await pool.query(query, values);
-    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
