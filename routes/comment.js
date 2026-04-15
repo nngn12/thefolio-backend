@@ -15,7 +15,7 @@ router.get('/:postId', async (req, res) => {
 router.post('/:postId', auth, async (req, res) => {
   const comment = await Comment.create({
     post: req.params.postId,
-    author: req.user._id,
+    author: req.user.id,
     body: req.body.body,
   });
   await comment.populate('author', 'name profilePic');
