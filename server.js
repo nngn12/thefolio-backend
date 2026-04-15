@@ -32,20 +32,11 @@ if (!fs.existsSync(uploadDir)) {
 // ✅ Middleware
 app.use(express.json());
 
-// ✅ CORS Configuration
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "https://thefolio-frontend-6m2l1ra5c-nngn12s-projects.vercel.app"
-    ];
-    // Allows local dev, your specific Vercel link, and Vercel preview branches
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: [
+    'http://localhost:3000',
+    'https://thefolio-frontend.vercel.app',
+  ],
   credentials: true
 }));
 
