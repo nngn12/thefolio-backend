@@ -48,20 +48,20 @@ router.get('/:id', async (req, res) => {
 });
 
 /* =========================
-   CREATE POST
+   CREATE POST (MULTIPLE IMAGES)
 ========================= */
-router.post('/', protect, memberOrAdmin, upload.single('images'), async (req, res) => {
+router.post('/', protect, memberOrAdmin, upload.array('images', 5), async (req, res) => {
   try {
     const { title, body } = req.body;
 
-    const image =
-      req.files && req.files.length > 0
-        ? req.files[0].filename
-        : '';
+    // ✅ Fix: Get all filenames and join them into a string
+    const imageString = req.files && req.files.length > 0
+      ? req.files.map(f => f.filename).join(',')
+      : '';
 
     const result = await pool.query(
       'INSERT INTO posts (title, body, image, author_id) VALUES ($1, $2, $3, $4) RETURNING id',
-      [title, body, image, req.user.id]
+      [title, body, imageString, req.user.id]
     );
 
     const post = await pool.query(
@@ -80,9 +80,9 @@ router.post('/', protect, memberOrAdmin, upload.single('images'), async (req, re
 });
 
 /* =========================
-   UPDATE POST (FIXED)
+   UPDATE POST (MULTIPLE IMAGES)
 ========================= */
-router.put('/:id', protect, memberOrAdmin, upload.single('images'), async (req, res) => {
+router.put('/:id', protect, memberOrAdmin, upload.array('images', 5), async (req, res) => {
   try {
     const postRes = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
 
@@ -91,22 +91,19 @@ router.put('/:id', protect, memberOrAdmin, upload.single('images'), async (req, 
     }
 
     const post = postRes.rows[0];
-
     const isOwner = post.author_id === req.user.id;
     if (!isOwner && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
     const { title, body } = req.body;
-
     let image = post.image;
 
-    // ✅ new uploaded images
+    // ✅ Handle new multiple uploads
     if (req.files && req.files.length > 0) {
-      image = req.files[0].filename;
+      image = req.files.map(f => f.filename).join(',');
     }
 
-    // ✅ remove image
     if (req.body.removeImage === "true") {
       image = "";
     }
@@ -139,14 +136,12 @@ router.delete('/:id', protect, memberOrAdmin, async (req, res) => {
     }
 
     const post = postRes.rows[0];
-
     const isOwner = post.author_id === req.user.id;
     if (!isOwner && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
     await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
-
     res.json({ message: 'Post deleted successfully' });
 
   } catch (err) {
