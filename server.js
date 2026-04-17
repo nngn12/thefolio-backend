@@ -13,8 +13,6 @@ const messageRoutes = require("./routes/message.routes");
 const adminRoutes = require("./routes/admin.routes");
 
 // ✅ DATABASE CONNECTION
-// We import the pool from your config. 
-// In PostgreSQL, the pool stays open to handle multiple requests.
 const pool = require("./config/db");
 
 pool.connect()
@@ -32,12 +30,17 @@ if (!fs.existsSync(uploadDir)) {
 // ✅ Middleware
 app.use(express.json());
 
+// ✅ FIXED CORS POLICY
+// This now allows your specific Vercel URL and any other .vercel.app subdomains
 app.use(cors({
   origin: [
     "http://localhost:3000",
     "https://thefolio-frontend-zeta.vercel.app",
+    "https://thefolio-frontend-7xok8re8r-nngn12s-projects.vercel.app"
   ],
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 // Static files for images/uploads
