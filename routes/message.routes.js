@@ -27,4 +27,25 @@ router.post("/", async (req, res) => {
   }
 });
 
+// backend/routes/message.routes.js (or similar)
+
+/* =========================
+   GET USER-SPECIFIC MESSAGES
+========================= */
+// This fetches messages where the logged-in user is the recipient 
+// (Change 'recipient_id' to whatever column you use in your database)
+router.get('/my-messages', protect, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM messages 
+             WHERE recipient_id = $1 
+             ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
