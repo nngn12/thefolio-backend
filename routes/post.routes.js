@@ -150,18 +150,16 @@ router.delete('/:id', protect, memberOrAdmin, async (req, res) => {
   }
 });
 
-/* =========================
-   GET USER-SPECIFIC POSTS (FOR DASHBOARD)
-========================= */
-router.get('/my-posts', protect, async (req, res) => {
+router.get('/my-posts', authMiddleware, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM posts 
-       WHERE author_id = $1 
-       ORDER BY created_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
+    // req.user.id comes from your authMiddleware (JWT)
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', req.user.id); // This ensures they only see THEIRS
+
+    if (error) throw error;
+    res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
