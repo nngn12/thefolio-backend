@@ -150,21 +150,4 @@ router.delete('/:id', protect, memberOrAdmin, async (req, res) => {
   }
 });
 
-/* =========================
-   GET USER-SPECIFIC POSTS (FOR DASHBOARD)
-========================= */
-router.get('/my-posts', protect, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT * FROM posts 
-       WHERE author_id = $1 
-       ORDER BY created_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 module.exports = router;
