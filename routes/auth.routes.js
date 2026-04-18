@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const pool = require('../config/db');
 const { protect } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload');
+const { supabase } = require("../config/supabase");
 
 // ✅ Commented out to prevent Render crash
 // const sendVerificationEmail = require('../utils/sendEmail');
@@ -139,30 +140,41 @@ router.put("/profile", protect, upload.single("profilePic"), async (req, res) =>
     try {
         const { name, bio } = req.body;
 
-        let profilePic = null;
+        let profilePicUrl = null;
 
+        // 1. Upload image to Supabase if exists
         if (req.file) {
-            profilePic = req.file.filename;
+            const fileName = `${Date.now()}-${req.file.originalname}`;
+
+            const { data, error } = await supabase.storage
+                .from("uploads")
+                .upload(`profile/${fileName}`, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                });
+
+            if (error) throw error;
+
+            const { data: publicUrl } = supabase.storage
+                .from("uploads")
+                .getPublicUrl(data.path);
+
+            profilePicUrl = publicUrl.publicUrl;
         }
 
+        // 2. ALWAYS use normal query (no COALESCE, no optional param issues)
         const result = await pool.query(
-            `
-            UPDATE users 
-            SET name = $1,
-                bio = $2,
-                profile_pic = CASE 
-                    WHEN $3 IS NOT NULL THEN $3 
-                    ELSE profile_pic 
-                END
-            WHERE id = $4
-            RETURNING id, name, bio, profile_pic, email, role
-            `,
-            [name, bio, profilePic, req.user.id]
+            `UPDATE users 
+             SET name = $1,
+                 bio = $2,
+                 profile_pic = COALESCE($3, profile_pic)
+             WHERE id = $4
+             RETURNING id, name, bio, profile_pic, email, role`,
+            [name, bio, profilePicUrl, req.user.id]
         );
 
         res.json(result.rows[0]);
+
     } catch (err) {
-        console.error(err);
         res.status(500).json({ message: err.message });
     }
 });
