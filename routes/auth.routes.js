@@ -146,17 +146,23 @@ router.put("/profile", protect, upload.single("profilePic"), async (req, res) =>
         }
 
         const result = await pool.query(
-            `UPDATE users 
-             SET name = $1,
-                 bio = $2,
-                 profile_pic = COALESCE($3, profile_pic)
-             WHERE id = $4
-             RETURNING id, name, bio, profile_pic, email, role`,
+            `
+            UPDATE users 
+            SET name = $1,
+                bio = $2,
+                profile_pic = CASE 
+                    WHEN $3 IS NOT NULL THEN $3 
+                    ELSE profile_pic 
+                END
+            WHERE id = $4
+            RETURNING id, name, bio, profile_pic, email, role
+            `,
             [name, bio, profilePic, req.user.id]
         );
 
         res.json(result.rows[0]);
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: err.message });
     }
 });
