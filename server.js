@@ -32,6 +32,7 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use("/uploads", express.static(uploadDir));
+app.use("/auth", require("./routes/auth.routes"));
 
 // Routes
 app.use("/api/auth",     authRoutes);
