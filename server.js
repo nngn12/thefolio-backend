@@ -24,13 +24,10 @@ pool.connect()
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
-// ✅ CORS (safe version)
 app.use(cors({
   origin: true,
   credentials: true
 }));
-
-app.options("*", cors());
 
 // Middleware
 app.use(express.json());
