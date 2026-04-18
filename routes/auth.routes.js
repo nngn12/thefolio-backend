@@ -135,4 +135,30 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
+router.put("/profile", protect, upload.single("profilePic"), async (req, res) => {
+    try {
+        const { name, bio } = req.body;
+
+        let profilePic = null;
+
+        if (req.file) {
+            profilePic = req.file.filename;
+        }
+
+        const result = await pool.query(
+            `UPDATE users 
+             SET name = $1,
+                 bio = $2,
+                 profile_pic = COALESCE($3, profile_pic)
+             WHERE id = $4
+             RETURNING id, name, bio, profile_pic, email, role`,
+            [name, bio, profilePic, req.user.id]
+        );
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
