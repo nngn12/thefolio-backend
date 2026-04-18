@@ -4,7 +4,7 @@ const pool = require("../config/db");
 const protect = async (req, res, next) => {
   let token;
 
-  // 1. Check if token exists in headers
+  // 1. Check if token exists
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -20,30 +20,23 @@ const protect = async (req, res, next) => {
     // 2. Verify Token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 3. Fetch user including verification and activity status
+    // 3. Simplified Query: Removed is_active and is_verified columns
     const result = await pool.query(
-      "SELECT id, name, email, role, is_active, is_verified, bio, profile_pic FROM users WHERE id = $1",
+      "SELECT id, name, email, role, bio, profile_pic FROM users WHERE id = $1",
       [decoded.id]
     );
 
     const user = result.rows[0];
 
-    // 4. FIX: Handle missing user
+    // 4. Handle missing user
     if (!user) {
       return res.status(401).json({ message: "User no longer exists" });
     }
 
-    // 5. REQUIREMENT FIX: Check Deactivation (403 Forbidden)
-    if (user.is_active === false) {
-      return res.status(403).json({ message: "Your account has been deactivated by an admin" });
-    }
+    // ✅ REMOVED: is_active check
+    // ✅ REMOVED: is_verified check
 
-    // 6. REQUIREMENT FIX: Check OTP Verification
-    if (user.is_verified === false) {
-      return res.status(403).json({ message: "Please verify your email via OTP to continue" });
-    }
-
-    // 7. Success - Attach user to request object
+    // 5. Success - Attach user to request object
     req.user = user;
     next();
 
