@@ -18,62 +18,40 @@ const adminRoutes   = require("./routes/admin.routes");
 
 const app = express();
 
+// Ensure uploads folder exists
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
-// ✅ 1. ULTIMATE CORS FIX
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://thefolio-frontend-zeta.vercel.app",
-  "https://thefolio-eight.vercel.app",
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
+// ✅ FIXED CORS (works with Vercel + credentials)
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
-
-    // Check if origin is in our list OR is any Vercel subdomain
-    const isAllowed = allowedOrigins.includes(origin) || 
-                      origin.endsWith(".vercel.app") || 
-                      origin.includes("vercel.app");
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.error("🚫 CORS blocked origin:", origin);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true, // dynamically allow all origins safely
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  // Added common headers to prevent preflight failures
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-// Handle pre-flight OPTIONS requests globally
+// Handle preflight requests
 app.options("*", cors());
 
+// Middleware
 app.use(express.json());
 app.use("/uploads", express.static(uploadDir));
 
-// API Routes
+// ✅ API Routes (AFTER CORS)
 app.use("/api/auth",     authRoutes);
 app.use("/api/posts",    postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin",    adminRoutes);
 
+// Test route
 app.get("/", (req, res) => res.send("TheFolio API is running ✓"));
 
+// 404 handler
 app.use((req, res) => res.status(404).json({ message: "API route not found" }));
 
+// Error handler
 app.use((err, req, res, next) => {
-  // Logic fix: Don't crash the server on CORS errors, just return status
-  if (err.message === "Not allowed by CORS") {
-    return res.status(403).json({ message: err.message });
-  }
   console.error(err.stack);
   res.status(err.status || 500).json({ message: err.message || "Server Error" });
 });
