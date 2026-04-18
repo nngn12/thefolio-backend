@@ -2,7 +2,7 @@ const multer = require('multer');
 const path = require('path');
 
 // ✅ Switch to memory storage for Cloud Uploads
-const storage = multer.memoryStorage();
+storage: multer.memoryStorage()
 
 const fileFilter = (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp|jfif/;
