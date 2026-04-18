@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { protect } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload');
-const { supabase } = require("../config/supabase");
 
 const router = express.Router();
 
