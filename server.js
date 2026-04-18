@@ -1,11 +1,11 @@
-// backend/server.js
 require("dotenv").config();
 
 const express = require("express");
-const cors    = require("cors");
-const path    = require("path");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 
-const connectDB = require("./config/db");
+const pool = require("./config/db"); // ✅ correct import
 
 const authRoutes    = require("./routes/auth.routes");
 const postRoutes    = require("./routes/post.routes");
@@ -15,43 +15,45 @@ const adminRoutes   = require("./routes/admin.routes");
 
 const app = express();
 
-connectDB();
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// ✅ CONNECT TO DB (correct way)
+pool.connect()
+  .then(() => console.log("✅ Connected to PostgreSQL"))
+  .catch(err => console.error("❌ DB connection error:", err.message));
 
-// ── CORS: reads FRONTEND_URL from Render environment variables ──
-// In Render dashboard → Environment → Add:  FRONTEND_URL = https://your-app.vercel.app
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://thefolio-eight.vercel.app", // Added your Vercel app explicitly here
-  process.env.FRONTEND_URL,
-].filter(Boolean);
+// Ensure uploads folder exists
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+// ✅ CORS (safe version)
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow Postman / curl (no origin header)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.error("CORS blocked origin:", origin);
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
+  origin: true,
+  credentials: true
 }));
 
-app.use(express.json());
+app.options("*", cors());
 
+// Middleware
+app.use(express.json());
+app.use("/uploads", express.static(uploadDir));
+
+// Routes
 app.use("/api/auth",     authRoutes);
 app.use("/api/posts",    postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin",    adminRoutes);
 
+// Test route
 app.get("/", (req, res) => res.send("TheFolio API is running ✓"));
 
+// 404
 app.use((req, res) => res.status(404).json({ message: "API route not found" }));
 
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({ message: err.message || "Server Error" });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
