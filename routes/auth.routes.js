@@ -18,9 +18,11 @@ const generateToken = (id) =>
 // 1. Get Totals for the Dashboard Cards
 router.get("/admin/stats", protect, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') return res.status(403).json({ message: "Access denied" });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Access denied" });
+    }
 
-    const [users, active, posts, messages] = await Promise.all([
+    const [usersRes, activeRes, postsRes, messagesRes] = await Promise.all([
       pool.query("SELECT COUNT(*) FROM users"),
       pool.query("SELECT COUNT(*) FROM users WHERE status = 'active'"),
       pool.query("SELECT COUNT(*) FROM posts"),
@@ -28,12 +30,14 @@ router.get("/admin/stats", protect, async (req, res) => {
     ]);
 
     res.json({
-      members: parseInt(users.rows[0].count),
-      active: parseInt(active.rows[0].count),
-      posts: parseInt(posts.rows[0].count),
-      unreadMsgs: parseInt(messages.rows[0].count)
+      members: Number(usersRes.rows[0].count),
+      active: Number(activeRes.rows[0].count),
+      posts: Number(postsRes.rows[0].count),
+      unreadMsgs: Number(messagesRes.rows[0].count)
     });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 });
