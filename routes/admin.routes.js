@@ -9,14 +9,13 @@ const router = express.Router();
 router.use(protect, adminOnly);
 
 // =======================
-// USERS - GET ALL
+// USERS - GET ALL (FIXED: Filter out admins here)
 // =======================
 router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, status FROM users ORDER BY id DESC'
+      "SELECT id, name, email, status, role FROM users WHERE role != 'admin' OR role IS NULL ORDER BY id DESC"
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error('GET USERS ERROR:', err.message);
@@ -25,36 +24,27 @@ router.get('/users', async (req, res) => {
 });
 
 // =======================
-// POSTS - GET ALL
+// DELETE USER (NEW: Fixes your 404 error)
 // =======================
-router.get('/posts', async (req, res) => {
+router.delete('/users/:id', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT p.*, u.name AS author_name, u.email AS author_email
-       FROM posts p
-       JOIN users u ON p.author_id = u.id
-       ORDER BY p.created_at DESC`
-    );
+    const { id } = req.params;
 
-    res.json(result.rows);
+    // Safety: check if user is admin before deleting
+    const check = await pool.query('SELECT role FROM users WHERE id = $1', [id]);
+    if (check.rows.length > 0 && check.rows[0].role === 'admin') {
+      return res.status(403).json({ message: "Cannot delete admin accounts" });
+    }
+
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
   } catch (err) {
-    console.error('GET POSTS ERROR:', err.message);
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// =======================
-// MESSAGES - GET ALL
-// =======================
-router.get('/messages', async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM messages ORDER BY created_at DESC'
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error('GET MESSAGES ERROR:', err.message);
+    console.error('DELETE USER ERROR:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -73,8 +63,7 @@ router.put('/users/:id/status', async (req, res) => {
       return res.status(404).json({ message: 'User not found or is an admin' });
     }
 
-    const newStatus =
-      userRes.rows[0].status === 'active' ? 'inactive' : 'active';
+    const newStatus = userRes.rows[0].status === 'active' ? 'inactive' : 'active';
 
     const result = await pool.query(
       `UPDATE users 
@@ -90,6 +79,39 @@ router.put('/users/:id/status', async (req, res) => {
     });
   } catch (err) {
     console.error('STATUS ERROR:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// =======================
+// POSTS - GET ALL
+// =======================
+router.get('/posts', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.*, u.name AS author_name, u.email AS author_email
+       FROM posts p
+       JOIN users u ON p.author_id = u.id
+       ORDER BY p.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET POSTS ERROR:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// =======================
+// MESSAGES - GET ALL
+// =======================
+router.get('/messages', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM messages ORDER BY created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET MESSAGES ERROR:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
