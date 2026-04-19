@@ -116,4 +116,19 @@ router.put("/:id/reply", async (req, res) => {
   }
 });
 
+// DELETE MESSAGE
+router.delete("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("DELETE FROM messages WHERE id = $1", [id]);
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+        res.json({ message: "Message deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
