@@ -47,4 +47,40 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Add this to your routes/message.routes.js
+
+// =======================
+// REPLY TO MESSAGE (ADMIN)
+// =======================
+router.put("/:id/reply", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reply_text } = req.body;
+
+    if (!reply_text) {
+      return res.status(400).json({ message: "Reply text is required" });
+    }
+
+    const result = await pool.query(
+      `UPDATE messages 
+       SET reply_text = $1, read = true 
+       WHERE id = $2 
+       RETURNING *`,
+      [reply_text, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    res.json({
+      message: "Reply sent successfully",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("REPLY ERROR:", err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
